@@ -32,32 +32,34 @@ namespace rawhid
 
         public MainForm()
         {
-            InitializeComponent();
-            InitializeApp();
-        }
-
-        #region General Methods
-        private void InitializeApp()
-        {
             m_usb = new HIDDevice();
+            m_cmds = new List<Command>();
+            m_connList = new List<HIDInfoSet>();
+
+            try
+            {
+                m_settings = LoadFromFile(typeof(AppSettings), m_confName) as AppSettings;
+            }
+            catch
+            {
+                m_settings = new AppSettings();
+            }
+
+            InitializeComponent();
+
             m_usb.OnDeviceRemoved += usb_OnDeviceRemoved;
             m_usb.OnDeviceArrived += usb_OnDeviceArrived;
-            m_usb.OnDataRecieved += usb_OnDataReceived;
-
-            m_connList = new List<HIDInfoSet>();
-            m_cmds = new List<Command>();
-
-            m_settings = new AppSettings();
-
-            ScanConnection();
+            m_usb.OnDataRecieved  += usb_OnDataReceived;
 
             LogDataGridView.Enabled = false;
             EditToolStripButton.Enabled = false;
             RemoveToolStripButton.Enabled = false;
             SaveToolStripButton.Enabled = false;
+
             m_tclk = new DataGridViewCellEventHandler(TxDataGridView_CellClick);
         }
 
+        #region General Methods
         private void ScanConnection()
         {
             m_connList = HIDDevice.GetInfoSets(m_settings.USB_VID, m_settings.USB_PID);
@@ -192,14 +194,7 @@ namespace rawhid
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            try
-            {
-                m_settings = LoadFromFile(m_settings.GetType(), m_confName) as AppSettings;
-            }
-            catch
-            {
-                m_settings = new AppSettings();
-            }
+            ScanConnection();
 
             if (m_settings.USB_AutoConnect)
             {
@@ -424,7 +419,7 @@ namespace rawhid
                 m_settings = cfgForm.Values;
                 SaveToFile(m_settings, m_confName);
 
-                if (!m_usb.IsConnected && m_settings.USB_AutoConnect)
+                if (!m_usb.IsConnected)
                 {
                     ScanConnection();
                 }
